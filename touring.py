@@ -1,9 +1,7 @@
 # 6C/19090023/Muchammad Nachirul Ichsan
 # 6C/19090063/Arwinda Laurisma
-
-#TEST LOGIN
-#19090023/123
-#19090063/123
+# 6C/19090089/Miftakhul mubarok 
+# 6C/19090051/Utari Cahyaningsih
 
 import os, random, string
 
