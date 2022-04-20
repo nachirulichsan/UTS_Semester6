@@ -124,7 +124,7 @@ def log_event():
 def event_logs():
     username = request.json['username']
     event_name = request.json['event_name']
-    logs_event = Logs.query.filter_by(event_name=event_name).all()
+    logs_event = Logs.query.filter_by(username=username, event_name=event_name).all()
     logs_status = {}
     for log in logs_event:
         dict_logs = []
