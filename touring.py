@@ -3,89 +3,103 @@
 # 6C/19090089/Miftakhul mubarok 
 # 6C/19090051/Utari Cahyaningsih
 
-import os, random, string
 
+import os, random, string
+from datetime import datetime
 from flask import Flask
-from flask import request
-from flask import jsonify
-from flask_httpauth import HTTPTokenAuth
+from flask import jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 
 project_dir = os.path.dirname(os.path.abspath(__file__))
-database_file = "sqlite:///{}".format(os.path.join(project_dir, "dbtouring.db"))
+database_file = "sqlite:///{}".format(os.path.join(project_dir, "dbtour.db"))
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = database_file
 db = SQLAlchemy(app)
-auth = HTTPTokenAuth(scheme='Bearer')
 
 class Users(db.Model):
-    username = db.Column(db.String(20), unique=True, nullable=False, primary_key=True)
-    password = db.Column(db.String(20), unique=False, nullable=False, primary_key=False)
-    token = db.Column(db.String(225), unique=True, nullable=True, primary_key=False)
-    db.create_all()
+    id= db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), unique=True, nullable=False)
+    password = db.Column(db.String(50), unique=False, nullable=False)
+    token = db.Column(db.String(100), unique=True, nullable=True)
+
 
 class Events(db.Model):
-    event_creator = db.Column(db.String(20), unique=True, nullable=False, primary_key=True)
-    event_name = db.Column(db.String(20), unique=False, nullable=False, primary_key=False)
-    event_start_time = db.Column(db.String, unique=False, nullable=False, primary_key=False)
-    event_end_time = db.Column(db.String, unique=False, nullable=False, primary_key=False)
-    event_start_lat = db.Column(db.String(20), unique=False, nullable=False, primary_key=False)
-    event_start_lng = db.Column(db.String(20), unique=False, nullable=False, primary_key=False)
-    event_finish_lat = db.Column(db.String(20), unique=False, nullable=False, primary_key=False)
-    event_finish_lng = db.Column(db.String(20), unique=False, nullable=False, primary_key=False)
-    created_at = db.Column(db.String, unique=False, nullable=False, primary_key=False)
-    token = db.Column(db.String(225), unique=True, nullable=True, primary_key=False)
-    db.create_all()
+    id = db.Column(db.Integer, primary_key=True)
+    event_creator = db.Column(db.String(50),nullable=False)
+    event_name = db.Column(db.String(50),nullable=False)
+    event_start_time = db.Column(db.Date, nullable=False)
+    event_end_time = db.Column(db.Date, nullable=False)
+    event_start_lat = db.Column(db.String(50),nullable=False)
+    event_start_lng = db.Column(db.String(50),nullable=False)
+    event_finish_lat = db.Column(db.String(50),nullable=False)
+    event_finish_lng = db.Column(db.String(50),nullable=False)
+    create_at = db.Column(db.Date, nullable=False, default=datetime.now)
 
 class Logs(db.Model):
-    username = db.Column(db.String(20), unique=True, nullable=False, primary_key=True)
-    event_name = db.Column(db.String(20), unique=False, nullable=False, primary_key=False)
-    log_lat = db.Column(db.String(20), unique=False, nullable=False, primary_key=False)
-    log_lng = db.Column(db.String(20), unique=False, nullable=False, primary_key=False)
-    created_at = db.Column(db.String, unique=False, nullable=False, primary_key=False)
-    token = db.Column(db.String(225), unique=True, nullable=True, primary_key=False)
+    id= db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50))
+    event_name = db.Column(db.String(50))
+    log_lat = db.Column(db.String(50))
+    log_lng = db.Column(db.String(50))
+    create_at = db.Column(db.Date, default=datetime.now)
     db.create_all()
 
-#curl -i http://127.0.0.1:7123/api/v1/users/create -X POST -H 'Content-Type: application/json' -d '{"username":"19090023", "password":"19090023"}'
-@app.route("/api/v1/users/create", methods=["POST"])
-def create():
-  username = request.json['username']
-  password = request.json['password']
-  addUsers = Users(username=username, password=password)
-  db.session.add(addUsers)
-  db.session.commit() 
-  return jsonify({
-    'msg': 'Registrasi Sukses',
-    'username': username,
-    'password' : password,
-    })
+#curl -i -X POST http://127.0.0.1:9200/api/v1/users/create -H 'Content-Type: application/json' -d '{"username":19090023, "password": 123}'
 
-#curl -i http://127.0.0.1:7123/api/v1/users/login -X POST -H 'Content-Type: application/json' -d '{"username":"19090023", "password": "19090023"}'
+@app.route("/api/v1/users/create", methods=["POST"])
+def create_user():
+    username = request.json['username']
+    password = request.json['password']
+
+    newUsers = Users(username=username, password=password)
+
+    db.session.add(newUsers)
+    db.session.commit() 
+    return jsonify({
+        'msg': 'berhasil tambah user',
+        'username': username,
+        'password' : password,
+        'status': 200 
+        })
+
+#curl -i -X POST http://127.0.0.1:9200/api/v1/users/login -H 'Content-Type: application/json' -d '{"username":19090023, "password": 123}'
+
 @app.route("/api/v1/users/login", methods=["POST"])
 def login():
-  username = request.json['username']
-  password = request.json['password']
-  user = Users.query.filter_by(username=username, password=password).first()
-  if user:
-    token = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
-    Users.query.filter_by(username=username, password=password).update({'token': token})
-    db.session.commit()
-    return jsonify({
-      'msg': 'Login Sukses',
-      'username': username,
-      'token': token,
-      })
-  else:
-    return jsonify({'msg': 'Login Failed'})
+    username = request.json['username']
+    password = request.json['password']
 
-#curl -i -X POST http://127.0.0.1:7123/api/v1/events/create -H 'Content-Type: application/json' -d '{"token": "WXHP5HM8TE", "event_name": "touring RR", "event_start_time":2022-12-07 12:00:00, "event_end_time":2022-12-07 12:00:00, "event_start_lat": 40, "event_finish_lat": 42, "event_start_lng": 40, "event_finish_lng": 34}'
+    user = Users.query.filter_by(username=username, password=password).first()
+
+    if user:
+        token = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+        
+        Users.query.filter_by(username=username, password=password).update({'token': token})
+        db.session.commit()
+
+        return jsonify({
+        'msg': 'Login berhasil',
+        'username': username,
+        'token': token,
+        'status': 200 
+        })
+
+    else:
+        return jsonify({
+        'msg': 'Login gagal',
+        'status': 401,
+        })
+
 @app.route("/api/v1/events/create", methods=["POST"])
 def create_event():
+
     token = request.json['token']
+
     token = Users.query.filter_by(token=token).first()
     if token:
-        event_creator = request.json['event_creator']
+
+        event_creator = token.username
         event_name = request.json['event_name']
         event_start_time = request.json['event_start_time']
         event_end_time = request.json['event_end_time']
@@ -93,43 +107,61 @@ def create_event():
         event_finish_lat = request.json['event_finish_lat']
         event_start_lng = request.json['event_start_lng']
         event_finish_lng = request.json['event_finish_lng']
-        newEvents = Events(event_start_times=event_start_time, event_end_times=event_end_time, event_creators=event_creator, event_names=event_name, event_start_lat=event_start_lat, event_finish_lat=event_finish_lat, event_start_lng=event_start_lng, event_finish_lng=event_finish_lng)
-        db.session.add()
+
+        event_start_time = datetime.strptime(event_start_time, '%Y-%m-%d %H:%M:%S')
+        event_end_time = datetime.strptime(event_end_time, '%Y-%m-%d %H:%M:%S')
+
+        newEvent = Events(event_start_time=event_start_time, event_end_time=event_end_time, event_creator=event_creator, event_name=event_name, event_start_lat=event_start_lat, event_finish_lat=event_finish_lat, event_start_lng=event_start_lng, event_finish_lng=event_finish_lng)
+
+        db.session.add(newEvent)
         db.session.commit() 
-        return newEvents, jsonify({
-            'msg': 'Berhasil Tambah Event'
+
+        return jsonify({
+            'msg': 'berhasil tambah event'
             })
 
-#curl -i http://127.0.0.1:7123/api/v1/events/log -X POST -H 'Content-Type: application/json' -d '{"username":"19090023", "event_name":"touring RR", "log_lat":"40,6", "log_lng":"44,5", "created_at":"2022-11-04 08:00"}'
 @app.route("/api/v1/events/log", methods=["POST"])
-def log_event():
-  username = request.json['username']
-  event_name = request.json['event_name']
-  log_lat = request.json['log_lat']
-  log_lng = request.json['log_lng']
-  created_at = request.json['created_at']
-  token = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
-  addlogs = Logs(username=username, event_name=event_name, log_lat=log_lat, log_lng=log_lng, created_at=created_at, token=token)
-  db.session.add(addlogs)
-  db.session.commit() 
-  return jsonify({
-    'msg': 'Sukses Mencatat Posisi Terbaru',
-    'event_name': event_name,
-    'log_lat' : log_lat,
-    'log_lng' : log_lng,
-    })
+def event_log():
+    token = request.json['token']
 
-#curl -i -X GET http://127.0.0.1:7123/api/v1/events/logs -H 'Content-Type: application/json' -d '{"username": "19090023", "event_name":"touring RR"}'
+    token = Users.query.filter_by(token=token).first()
+
+    if token:
+        username = token.username
+        event_name = request.json['event_name']
+        log_lat = request.json['log_lat']
+        log_lng = request.json['log_lng']
+    
+        newLog = Logs(username=username, event_name=event_name, log_lat=log_lat, log_lng=log_lng)
+
+        db.session.add(newLog)
+        db.session.commit() 
+
+    return jsonify({
+        'msg': 'Anda berhasil menambahkan posisi terbaru'
+        })
+
 @app.route("/api/v1/events/logs", methods=["GET"])
 def event_logs():
-    username = request.json['username']
-    event_name = request.json['event_name']
-    logs_event = Logs.query.filter_by(username=username, event_name=event_name).all()
-    logs_status = {}
-    for log in logs_event:
-        dict_logs = []
-        logs_status.append(dict_logs)
-    return jsonify(logs_status)
+
+    token = request.json['token']
+
+    token = Users.query.filter_by(token=token).first()
+    if token : 
+
+        username = token.username
+        event_name = request.json['event_name']
+    
+        logs_event = Logs.query.filter_by(event_name=event_name).all()
+
+        logs_status = []
+
+        for log in logs_event:
+            dict_logs = {}
+            dict_logs.update({"username": log.username, "event_name": log.event_name, "log_lat": log.log_lat, "log_lng": log.log_lng, "create_at": log.create_at })
+            logs_status.append(dict_logs)
+        
+        return jsonify(logs_status)
 
 if __name__ == '__main__':
-   app.run(debug = True, port=7123)
+    app.run(debug=True, port=9200)
